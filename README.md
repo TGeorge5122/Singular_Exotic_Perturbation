@@ -6,7 +6,7 @@ This project implements Adil Reghai and Florian Monciaud's paper, "Singular Exot
 2) Compute value of exotic (a barrier option say) under LV.
 3) Implement the Reghai formula for the LSV-LV adjustment
 
-## Phase 1 of the project is now done.
+### Phase 1 of the project is now done.
 
 4) Get simple LSV spec.  Generate European option prices
 5) Compute local volatility.  By definition, vanilla prices under LSV and LV should match.
