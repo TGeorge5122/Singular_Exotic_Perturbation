@@ -3,7 +3,7 @@ import collections
 from enum import Enum
 from scipy.stats import norm
 
-OptionType = Enum('Call','Put')
+OptionType = Enum('OptionType', ['Call','Put'])
 
 class BlackScholes:
 
@@ -24,7 +24,7 @@ class BlackScholes:
         nK = len(K) if isinstance(K, collections.Sized) else 1
         sigmaL = np.full(nK, 1e-10)
         VL = BlackScholes.BSFormula(S0, K, T, r, sigmaL, optiontype)
-        sigmaH = np.full(nK, 10)
+        sigmaH = np.full(nK, 10.0)
         VH = BlackScholes.BSFormula(S0, K, T, r, sigmaH, optiontype)
         
         while (np.mean(sigmaH - sigmaL) > 1e-10):
@@ -33,7 +33,7 @@ class BlackScholes:
             VL += (VM < V) * (VM - VL)
             sigmaL += (VM < V) * (sigma - sigmaL)
             VH += (VM >= V) * (VM - VH)
-            sigmaH += (VM >= V) * (sigma-sigmaH)
+            sigmaH += (VM >= V) * (sigma - sigmaH)
             
         return sigma
     

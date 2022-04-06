@@ -16,7 +16,7 @@ class ExoticOption(metaclass = abc.ABCMeta):
         return
     
 BarrierType = Enum('BarrierType', ['Down and Out', 'Down and In', 'Up and Out', 'Up and In'])
-OptionType = Enum('Call','Put')
+OptionType = Enum('OptionType', ['Call','Put'])
     
 class BarrierOption(ExoticOption):
     
@@ -49,5 +49,23 @@ class BarrierOption(ExoticOption):
             
             final_price = (price_paths.max(axis = 0) > self.B) * price_paths[-1]
             
+        return (final_price - self.K) * (final_price > self.K) if self.option_type == OptionType['Call'] \
+            else (self.K - final_price) * (self.K > final_price)
+            
+class EuropeanOption(ExoticOption):
+    
+    def __init__(self, K, option_type: OptionType):
+        
+        self.K = K
+        self.option_type = option_type
+        
+    def set_strike(self, K):
+        
+        self.K = K
+        
+    def payoff(self, price_paths):
+        
+        final_price = price_paths[-1]
+        
         return (final_price - self.K) * (final_price > self.K) if self.option_type == OptionType['Call'] \
             else (self.K - final_price) * (self.K > final_price)
