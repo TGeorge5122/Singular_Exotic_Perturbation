@@ -28,6 +28,7 @@ class BlackScholes:
         VH = BlackScholes.BSFormula(S0, K, T, r, sigmaH, optiontype)
         
         while (np.mean(sigmaH - sigmaL) > 1e-10):
+            
             sigma = (sigmaL + sigmaH)/2
             VM = BlackScholes.BSFormula(S0, K, T, r, sigma, optiontype)
             VL += (VM < V) * (VM - VL)

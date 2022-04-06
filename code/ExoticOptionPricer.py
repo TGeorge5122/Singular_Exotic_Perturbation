@@ -68,19 +68,25 @@ class ExoticOptionPricer:
         #Well choosen scenario such that x_kt_volga makes the exotic vanna disappear for vanilla options
         def sigma_kt_x_kt_vanna(u, t):
             
+            tau = T - t
             call = OptionType['Call']
-            V = BlackScholes.BSFormula(u + delta_S, u, t, r, locvol(u, t) + delta_sigma, call) \
-                - BlackScholes.BSFormula(u + delta_S, u, t, r, locvol(u, t), call) \
-                + BlackScholes.BSFormula(u, u, t, r, locvol(u, t), call)
-            return BlackScholes.BSImpliedVol(u, u, t, r, V, call)
+            
+            V = BlackScholes.BSFormula(u + delta_S, u, tau, r, locvol(u, t) + delta_sigma, call) \
+                - BlackScholes.BSFormula(u + delta_S, u, tau, r, locvol(u, t), call) \
+                + BlackScholes.BSFormula(u, u, tau, r, locvol(u, t), call)
+                
+            return BlackScholes.BSImpliedVol(u, u, tau, r, V, call)
         
         #Well choosen scenario such that x_kt_volga makes the exotic volga disappear for vanilla options
         def sigma_kt_x_kt_volga(u, t):
             
+            tau = T - t
             call = OptionType['Call']
-            V = - BlackScholes.BSFormula(u, u, t, r, locvol(u, t) - delta_sigma, call) \
-                + 2 * BlackScholes.BSFormula(u, u, t, r, locvol(u, t), call)
-            return BlackScholes.BSImpliedVol(u, u, t, r, V, call)
+            
+            V = - BlackScholes.BSFormula(u, u, tau, r, locvol(u, t) - delta_sigma, call) \
+                + 2 * BlackScholes.BSFormula(u, u, tau, r, locvol(u, t), call)
+                
+            return BlackScholes.BSImpliedVol(u, u, tau, r, V, call)        
         
         exotic_vanna = ExoticOptionPricer.localVolMC(exoticoption, lambda u,t: locvol(u,t) + delta_sigma, S0 + delta_S, T, AK, paths, timesteps)['Value under Local Volatility'] \
             - ExoticOptionPricer.localVolMC(exoticoption, locvol, S0 + delta_S, T, AK, paths, timesteps)['Value under Local Volatility'] \

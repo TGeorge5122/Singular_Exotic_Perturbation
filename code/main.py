@@ -14,7 +14,7 @@ if __name__ == '__main__':
         
     european_option = EuropeanOption(K = 1, option_type = OptionType['Call'])
     
-    AK = np.arange(.8,1.3,.1)  
+    AK = np.arange(.8,1.3,.1)
     
     barrier_start_time = time.time()
     
