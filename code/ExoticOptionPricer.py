@@ -6,8 +6,8 @@ The user provides their own local volatility function and pricing under
 LSV is computed using the LSV impact formula presented in Monicaud and Reghai.
 '''
 
-from BlackScholes import BSFormula, BSImpliedVolCall
-from ExoticOption import ExoticOption
+from BlackScholes import BlackScholes
+from ExoticOption import ExoticOption, OptionType
 from typing import Callable
 import numpy as np
 import pandas as pd
@@ -17,7 +17,7 @@ class ExoticOptionPricer:
     #Computes the value of the exotic option under the passed local volatility
     #function using monte carlo simulations.
     @staticmethod
-    def localVolMC(exoticoption: ExoticOption, locvol: Callable[[float, float], float], S0, T, AK, paths, timesteps, sigma_shift = 0):
+    def localVolMC(exoticoption: ExoticOption, locvol: Callable[[float, float], float], S0, T, AK, paths, timesteps):
         
         dt = T / timesteps
         sqdt = np.sqrt(dt)
@@ -33,7 +33,7 @@ class ExoticOptionPricer:
             W /= np.std(W,ddof=1) # As alternative to antithetic variates, force mean<-0 and sd<-1
             
             # Stock SDE discretization
-            sig = locvol(S0*np.exp(s[i]),t/2) + sigma_shift
+            sig = locvol(S0*np.exp(s[i]),t/2)
             s[i+1] = s[i] - sig**2/2*dt + sig*sqdt * W
             t += dt
             
@@ -54,7 +54,7 @@ class ExoticOptionPricer:
     #Computes the value of the exotic option under local stochastic volatility
     #using the passed local volatility function and the LSV impact.
     @staticmethod    
-    def localStocVolMC(exoticoption: ExoticOption, locvol: Callable[[float, float, float], float], S0, T, AK, rho, nu, kappa, paths, timesteps):
+    def localStocVolMC(exoticoption: ExoticOption, locvol: Callable[[float, float, float], float], S0, T, AK, rho, nu, kappa, paths, timesteps, r = 0):
         
         delta_S = 1e-6
         delta_sigma = 1e-6
@@ -65,22 +65,31 @@ class ExoticOptionPricer:
         #Compute the LSV Impact
         sigma_y_2 = nu ** 2 / (2 * kappa)
         
-        sigma_kt = 
-        
         #Well choosen scenario such that x_kt_volga makes the exotic vanna disappear for vanilla options
-        x_kt_vanna = 
+        def sigma_kt_x_kt_vanna(u, t):
+            
+            call = OptionType['Call']
+            V = BlackScholes.BSFormula(u + delta_S, u, t, r, locvol(u, t) + delta_sigma, call) \
+                - BlackScholes.BSFormula(u + delta_S, u, t, r, locvol(u, t), call) \
+                + BlackScholes.BSFormula(u, u, t, r, locvol(u, t), call)
+            return BlackScholes.BSImpliedVol(u, u, t, r, V, call)
         
         #Well choosen scenario such that x_kt_volga makes the exotic volga disappear for vanilla options
-        x_kt_volga = 
+        def sigma_kt_x_kt_volga(u, t):
+            
+            call = OptionType['Call']
+            V = - BlackScholes.BSFormula(u, u, t, r, locvol(u, t) - delta_sigma, call) \
+                + 2 * BlackScholes.BSFormula(u, u, t, r, locvol(u, t), call)
+            return BlackScholes.BSImpliedVol(u, u, t, r, V, call)
         
-        exotic_vanna = ExoticOptionPricer.localVolMC(exoticoption, locvol, S0 + delta_S, T, AK, paths, timesteps, delta_sigma)['Value under Local Volatility'] \
+        exotic_vanna = ExoticOptionPricer.localVolMC(exoticoption, lambda u,t: locvol(u,t) + delta_sigma, S0 + delta_S, T, AK, paths, timesteps)['Value under Local Volatility'] \
             - ExoticOptionPricer.localVolMC(exoticoption, locvol, S0 + delta_S, T, AK, paths, timesteps)['Value under Local Volatility'] \
-            - ExoticOptionPricer.localVolMC(exoticoption, locvol, S0, T, AK, paths, timesteps, x_kt_vanna)['Value under Local Volatility'] \
+            - ExoticOptionPricer.localVolMC(exoticoption, sigma_kt_x_kt_vanna, S0, T, AK, paths, timesteps)['Value under Local Volatility'] \
             + option_value['Value under Local Volatility']
         
-        exotic_volga = ExoticOptionPricer.localVolMC(exoticoption, locvol, S0, T, AK, paths, timesteps, -delta_sigma)['Value under Local Volatility'] \
+        exotic_volga = ExoticOptionPricer.localVolMC(exoticoption, lambda u,t: locvol(u,t) - delta_sigma, S0, T, AK, paths, timesteps)['Value under Local Volatility'] \
             - 2 * option_value['Value under Local Volatility'] \
-            + ExoticOptionPricer.localVolMC(exoticoption, locvol, S0, T, AK, paths, timesteps, x_kt_volga)['Value under Local Volatility']
+            + ExoticOptionPricer.localVolMC(exoticoption, sigma_kt_x_kt_volga, S0, T, AK, paths, timesteps)['Value under Local Volatility']
         
         
         option_value['LSV Impact'] = rho * nu / kappa * exotic_vanna + 1 / 2 * sigma_y_2 * exotic_volga

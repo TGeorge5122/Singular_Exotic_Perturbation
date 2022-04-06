@@ -28,6 +28,7 @@ class BarrierOption(ExoticOption):
         self.option_type = option_type
         
     def set_strike(self, K):
+        
         self.K = K
         
     def payoff(self, price_paths):
