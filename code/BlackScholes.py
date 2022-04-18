@@ -43,3 +43,31 @@ class BlackScholes:
       return np.where(K > S0 * np.exp(r*T), BlackScholes.BSImpliedVol(S0, K, T,\
             r, V, OptionType['Call']),  BlackScholes.BSImpliedVol(S0, K, T, r, \
             V, OptionType['Put']))
+
+    @staticmethod
+    def BSCall (S0, K, T, r, sigma):
+    
+        d1 = (np.log(S0 / K) + (r + sigma**2 / 2) * T) / (sigma * np.sqrt(T))
+        d2 = d1 - sigma * np.sqrt(T)
+        
+        return S0 * norm.cdf(d1) - np.exp(-r * T) * K * norm.cdf(d2)
+
+    # Bisection method
+    # This function now works with vectors of strikes and option values
+    @staticmethod
+    def BSImpliedVolCall (S0, K, T, r, C):
+        nK = len(K) if isinstance(K, collections.Sized) else 1
+        sigmaL = np.full(nK, 1e-10)
+        CL = BlackScholes.BSCall(S0, K, T, r, sigmaL)
+        sigmaH = np.full(nK, 10)
+        CH = BlackScholes.BSCall(S0, K, T, r, sigmaH)
+            
+        while (np.mean(sigmaH - sigmaL) > 1e-10):
+            sigma = (sigmaL + sigmaH)/2
+            CM = BlackScholes.BSCall(S0, K, T, r, sigma)
+            CL = CL + (CM < C)*(CM-CL)
+            sigmaL = sigmaL + (CM < C)*(sigma-sigmaL)
+            CH = CH + (CM >= C)*(CM-CH)
+            sigmaH = sigmaH + (CM >= C)*(sigma-sigmaH)
+            
+        return sigma
