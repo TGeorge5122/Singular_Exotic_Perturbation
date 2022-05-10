@@ -31,11 +31,11 @@ def BSImpliedVolCall (S0, K, T, r, C):
         
     return sigma
 
-def localVolMC(locvol, S0, T,  paths, timeSteps, AK, debug = False):
+def localVolMC(locvol, S0, T,  paths, timeSteps, AK, deformation=0, debug = False):
     
     dt = T / timeSteps
     sqdt = np.sqrt(dt)
-  
+    deformation=np.exp(deformation)
     # We use a vertical array, one element per M.C. path
     s = np.zeros(paths)
     t = 0
@@ -50,7 +50,7 @@ def localVolMC(locvol, S0, T,  paths, timeSteps, AK, debug = False):
         W /= np.std(W,ddof=1) # As alternative to antithetic variates, force mean<-0 and sd<-1
         # Stock SDE discretization
         
-        sig = locvol(S0*np.exp(s), t)
+        sig = locvol(S0*np.exp(s), t)*deformation
         
         s += -sig**2/2 * dt + sig * sqdt * W
         t += dt
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     locvolMLP=lvSPX(mintau=1/250,S0=S0)
     delta_sigma = 0.03
     delta_S = 0.03
-    
+    beta = 0.03#deformation term
     k_array = np.linspace(-0.6, 0.2, 10)#log stock price log(St/S0)
     Strike_array=S0*np.exp(k_array)
     t_array = np.linspace(0, 1, len(k_array))
@@ -110,7 +110,10 @@ if __name__ == '__main__':
         c_kt_sigmaperturb = localVolMC(locvol = lambda u, t: locvolMLP(u,t) - delta_sigma, S0 = S0, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array)
         c_kt_s_perturb = localVolMC(locvol = locvolMLP, S0 = S0 + delta_S, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array)
         
-        volga_call_price_grid[t] = (2 * c_kt_sigma['Local Volatility Price'] - c_kt_sigmaperturb['Local Volatility Price']).values
+        #deformation with e^beta
+        c_kt_negative_beta=localVolMC(locvol = locvolMLP, S0 = S0, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array,deformation=-beta)
+        
+        volga_call_price_grid[t] = (2 * c_kt_sigma['Local Volatility Price'] - c_kt_negative_beta['Local Volatility Price']).values
         vanna_call_price_grid[t] = (c_kt_s_sigma_perturb['Local Volatility Price'] - c_kt_s_perturb['Local Volatility Price'] + c_kt_sigma['Local Volatility Price']).values
         
         sigma_kt_x_volga_kt_grid[t] = BSImpliedVolCall(S0, Strike_array, t, r, volga_call_price_grid[t].values)
@@ -144,9 +147,8 @@ if __name__ == '__main__':
         
         c_kt_sigma_x_vanna = localVolMC(locvol = lambda u, t: locvolMLP(u,t) + x_vanna_kt(u,t,grid=False).flatten(), S0 = S0, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array, debug = False) 
         c_kt_sigma_x_volga = localVolMC(locvol = lambda u, t: locvolMLP(u,t) + x_volga_kt(u,t,grid=False).flatten(), S0 = S0, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array) 
-        exotic_volga[t] = c_kt_sigma_x_volga['Local Volatility Price'].values - volga_call_price_grid[t].values
-        exotic_vanna[t] = vanna_call_price_grid[t].values - c_kt_sigma_x_vanna['Local Volatility Price'].values
-    
-    print(exotic_volga.mean().mean())
-    print(exotic_vanna.mean().mean())
+        exotic_volga[t] = (c_kt_sigma_x_volga['Local Volatility Price'].values - volga_call_price_grid[t].values)/beta**2
+        exotic_vanna[t] = (vanna_call_price_grid[t].values - c_kt_sigma_x_vanna['Local Volatility Price'].values)/(delta_S*delta_sigma)*S0
+    print(np.abs(exotic_volga).mean().mean())
+    print(np.abs(exotic_vanna).mean().mean())
     lsv_impact = 1 / 2 * (nu ** 2 / (2 * kappa)) * exotic_volga + rho * nu / kappa * exotic_vanna
