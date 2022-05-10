@@ -85,9 +85,9 @@
 
 
 
-\title{\bf Our brilliant masters project final report}
+\title{\bf Capstone report}
 
-\author{John Brown\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  john.brown@baruch.cuny.edu}}{\setcounter{footnote}{1}} , James Smith\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  James.Smith@baruch.cuny.edu}}{\setcounter{footnote}{2}} \thanks{We wish to thank our hamsters Buster and Butch for their constant affection.}
+\author{Tianrong Wang\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  Tianrong.Wang@baruch.cuny.edu}}{\setcounter{footnote}{1}} , Thomas George\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  Thomas.George@baruch.cuny.edu}}{\setcounter{footnote}{2}} \thanks{We wish to thank our hamsters Buster and Butch for their constant affection.}
 }
 
 %\date{This version: December 25, 2011}
@@ -116,48 +116,188 @@ In this report, we describe our final project ....
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Current Progress}
-\subsection{Local Vol models}
+\subsection{Options pricing models}
+\subsubsection{Local Vol surface}
 The Local Vol model I am using is the parameterized SVI model provided by professor Gatheral.
 $\sigma_{SVI}(k,t)$ where $k$ is the log strike and $t$ is the current time. I modified it to take $S_t$ and $t$ to be used in the Monte-Carlo local vol pricer.
 $\sigma_{SVI}(k=log(\frac{S_t}{S_0}),t)$
 
-\subsection{Exotic Volga}
-Exotic Volga is computed in this way
+\subsubsection{Local Stochastic Vol model}
+The local stochatic volatility model we are using is
+\begin{equation} \label{eq:1}
+    \frac{dS_t}{S_t}=\frac{\sigma_D(t,S_t)}{\sqrt{\E(e^{2Y_t^\epsilon}|S_t)}}e^{Y_t^\epsilon}dW_t
+\end{equation} 
 \[
-    P(\sigma_{KT}-\delta \sigma)-2P(\sigma_{KT})+P(\sigma_{KT}+x_{KT}^{Volga})
+    dY_t^\epsilon=-\frac \kappa \epsilon Y_t^\epsilon dt + \frac{\mu}{\sqrt{\epsilon}}dB_t
 \]
-$P(\sigma_{KT}-\delta \sigma)$ means the price of an exotic option using a local vol surface with a constant shift.\\
-$P(\sigma_{KT})$ means the price of an exotic under a local vol surface.\\
-$P(\sigma_{KT}+x_{KT}^{Volga})$ means the price of an exotic under a local vol surface with each $(S_t=K,t=T)$ has a different shift $x_{KT}^{Volga}$\\
+When $\lim_{\epsilon \to 0}$, $Y_t^\epsilon\sim N(0,\sigma_y^2)$ Where $\sigma_y^2=\frac{\nu^2}{2\kappa}$
 
-$x_{KT}^{Volga}$ is obtained by solving the following equation for each strike price K and each time to maturity T.\\
+Therefore, When $\lim_{\epsilon \to 0}$ \ref{eq:1} can be written as
+\begin{equation} \label{eq:2}
+    \frac{dS_t}{S_t}=\frac{\sigma_D(t,S_t)}{e^{\sigma_y^2}}e^{Y_t^\epsilon}dW_t
+\end{equation} 
+
+\subsubsection{Local Vol model}
+The local vol pricing model we are using is based on the process from \ref{eq:2}
+
+\begin{equation} \label{eq:loc}
+    \frac{dS_t}{S_t}=\sigma_D(t,S_t)e^{Y-\sigma_y^2}dW_t
+\end{equation}
+
+We denote the option price from this process with deformation term $Y=y$ 
+as $\pi_{LV}^y$. When there's no deformation $Y=\sigma_y^2$ we denote the option price
+as $\pi_{LV}$.
+
+\subsection{Numerical result}
+The local vol model we are using in this part is \ref{eq:loc}
+
+The theoretical LSV impact is 
+\begin{equation} \label{eq:3}
+    \pi_{LSV}-\pi_{LV}=\frac 1 2 \sigma^2_y \frac{\partial_E^2 \pi^\beta_{LV}}{\partial \beta^2}|_{\beta=\sigma^2_y}
+    +\frac{\rho \nu}{\kappa}\frac{\partial_E^2 \pi_{LV}}{\partial \ln S_0\partial \sigma}
+\end{equation} 
+Where
+\begin{equation} \label{eq:4}
+    \frac{\partial_E^2 \pi^\beta_{LV}}{\partial \beta^2}=\frac{\partial^2 \pi^\beta_{LV}}{\partial \beta^2}
+    -\int_0^T\int_0^\infty (q_{K,T}\frac{\partial^2 C^{\beta,K,T}_{LV}}{\partial \beta^2})dKdT\\
+\end{equation} 
+
+\begin{equation} \label{eq:5}
+    \frac{\partial_E^2 \pi_{LV}}{\partial \ln S_0\partial \sigma}=\frac{\partial^2\pi_{LV}}{\partial \ln S_0\partial \sigma}
+    -\int_0^T\int_0^\infty (q_{K,T}\frac{\partial^2 C^{K,T}_{LV}}{\partial \ln S_0\partial \sigma})dKdT
+\end{equation} 
+\subsubsection{Special scenarii to simplify computation}
+We remove the double integral in the above section by designing special scenarii
+
+For exotic Volga, for the vanilla effect, we try to use an asymetric bump $x_{K,T}$ for different strikes and maturities to remove it
+\begin{equation} \label{eq:8}
+    C_{LV}^{K,T,\sigma_y^2+bump}-2 C_{LV}^{K,T,\sigma_y^2}+C_{LV}^{K,T,\sigma_y^2-beta}=0
+\end{equation} 
+The effect of adding this asymetric bump can be modeled as moving the local volatility surface, because this bump is 
+a multiplier for each point on the local vol surface $\sigma_D(t,S_t)$ as we showed in \ref{eq:loc}\\
+We used a Black-Scholes solver to compute this new surface by using the following formula on each strike and maturity
+\begin{equation} 
+    \sigma_{BS,K,T}+x_{K,T}=C^{-1}(2 C_{LV}^{K,T,\sigma_y^2}-C_{LV}^{K,T,\sigma_y^2-beta})=0
+\end{equation} 
+$x_{K,T}$ is used as the bump for each $K,T$ on the local vol surface.
+This method used the approximation that the bump on the local vol surface is the same 
+as the resulted bump on the implied vol surface.\\
+
+After getting the bumps for each strike and maturity, we construct a new local vol surface $\sigma_{K,T}+x_{K,T}$.
+The exotic volga is computed in the following way:
+
+\begin{equation} \label{eq:6}
+    \frac{\partial_E^2 \pi^\beta_{LV}}{\partial \beta^2}=\lim_{\beta \to 0}\frac{\pi_{LV}(\sigma_{K,T}+x_{K,T})-2\pi_{LV}+\pi_{LV}^{-\beta}}{\beta^2}\\
+\end{equation} 
+
+
+The exotic vanna is computed in a similar way. We first get the bumps $x_{K,T}$ for each strike and maturity by using the following equation
+\begin{equation} \label{eq:9}
+    0=C_{LV}^{K,T}(S+\delta S,\sigma_{K,T}+\delta \sigma)-C_{LV}^{K,T}(S+\delta S,\sigma_{K,T})-C_{LV}^{K,T}(S,\sigma_{K,T}+x_{K,T})+C_{LV}^{K,T}(S,\sigma_{K,T})
+\end{equation} 
+$C_{LV}^{K,T}(S+\delta S,\sigma_{K,T}+\delta \sigma)$ means a small change on spot price and an
+uniform bump on the whole local vol surface.
+Then we solve $x_{K,T}$, which is a single point bump by using Black-Scholes solver on each K and T
+
 \[
-    0=C(\sigma_{KT}-\delta \sigma)-2C(\sigma_{KT})+C(\sigma_{KT}+x_{KT}^{Volga})
+    \sigma_{BS,K,T}+x_{K,T}=C_{LV}^{K,T}(S+\delta S,\sigma_{K,T}+\delta \sigma)-C_{LV}^{K,T}(S+\delta S,\sigma_{K,T})+C_{LV}^{K,T}(S,\sigma_{K,T})
 \]
-$\implies$
-\[
-    \sigma_{BS}+x_{KT}^{Volga} \approx C^{-1}(-C(\sigma_{KT}-\delta \sigma)+2C(\sigma_{KT}))
-\]
-where $\sigma_{BS}$ is the Black-Scholes implied vol when strike is K and time to maturity is T for the vanilla call options , using the local vol surface we have.\\
-$C^{-1}$ is the Black-Scholes implied vol solver.\\
-$C(\sigma_{KT}-\delta \sigma)$ is the price of a vanilla call with strike K and time to maturity T, under the local vol surface we have with a constand drift $-\delta \sigma$.\\
-$C(\sigma_{KT})$ is the price of a vanilla call with strike K and time to maturity T, under the local vol surface we have.\\
+
+We again used the bump on the implied vol surface to apprximate the bump on the local vol surface.
+
+Exotic vanna is computed in the following way
+\begin{eqnarray} 
+    &&\frac{\partial_E^2 \pi_{LV}}{\partial \ln S_0 \partial \sigma}\\
+    &=&S_0\frac{\pi_{LV}(S_0+\delta S ,\sigma_{K,T}+\delta \sigma)-\pi_{LV}(S_0+\delta S ,\sigma_{K,T})-\pi_{LV}(S_0,\sigma_{K,T}+x_{K,T})+\pi_{LV}(S_0,\sigma_{K,T})}
+    {\delta S \delta \sigma}
+\end{eqnarray} 
+
+\subsubsection{Thoughts on current method}
+When finding the bump $x_{K,T}$ we used implied vol solver on each K and T.
+
+One problem with this method is that we got the bump with implied vol surface instead of
+the local vol surface. The other problem is that BS implied vol solver only capture the bump
+on a specific (K,T) each time.
+A better method should be constructing a new local vol surface $\sigma_{K,T}+x_{K,T}$ directly with all the option prices
+getting from equation \ref{eq:8} and \ref{eq:9}
 
 \subsection{Current result}
 With $S_0=1$ , log strikes $k=log(K/S_0) \in (-0.6,0.2)$ , time to maturity $T \in (0,1)$. The average exotic greeks are concluded in the table \ref{table:exotic greeks}
 \begin{table}[]
     \begin{tabular}{lllll}
     \cline{1-3}
-    \multicolumn{1}{|l|}{Average Exotic Greeks across K,T} & \multicolumn{1}{l|}{Exotic Volga} & \multicolumn{1}{l|}{Exotic Vanna} &  &  \\ \cline{1-3}
-    \multicolumn{1}{|l|}{Vanilla Call}                     & \multicolumn{1}{l|}{-1.8113e-05}  & \multicolumn{1}{l|}{-0.002063}    &  &  \\ \cline{1-3}
-    \multicolumn{1}{|l|}{Down and Out Call}                & \multicolumn{1}{l|}{0.0107}       & \multicolumn{1}{l|}{0.0590}       &  &  \\ \cline{1-3}
+    \multicolumn{1}{|l|}{Average Absolute Exotic Greeks across K,T} & \multicolumn{1}{l|}{Exotic Volga} & \multicolumn{1}{l|}{Exotic Vanna} &  &  \\ \cline{1-3}
+    \multicolumn{1}{|l|}{Vanilla Call}                     & \multicolumn{1}{l|}{0.511}  & \multicolumn{1}{l|}{5.12}    &  &  \\ \cline{1-3}
+    \multicolumn{1}{|l|}{Down and Out Call}                & \multicolumn{1}{l|}{9.64}       & \multicolumn{1}{l|}{62.9}       &  &  \\ \cline{1-3}
                                                            &                                   &                                   &  & 
     \end{tabular}
     \caption{exotic greeks}
     \label{table:exotic greeks}
 \end{table}
 
+\section{Math proofs for the formulas}
 
+\subsection{Singular pertubation}
+Considering the LSV process \ref{eq:1} as $lim{\epsilon to 0}$. 
+Suppose the option price is $u(t,x,y)$. The payoff at maturity is $ u(T,x,y)=h(T,x)$.
+By applying Feyman-Kac, we obtain the following PDE
+\begin{equation}\label{eq:PDE}
+    u_t+\frac 1 2 \sigma_D^2(t,x)x^2e^{2(y-\sigma_y^2)}u_xx+\frac{1}{\epsilon}\mathcal{L}_y u
+    +\frac{1}{\sqrt{\epsilon}}\rho \nu x \sigma_D^2(t,x)e^{y-\sigma_y^2} u_{xy}
+\end{equation}
+
+Where $\mathcal{L}_y=-\kappa \partial_y +\frac 1 2 \nu^2 \partial_{yy}$
+
+We can make an expansion of $u$ as $u=u_0+\sqrt{\epsilon}u_1+\epsilon u_2$, where $u_0$ is the LV price $\pi_{LV}$
+
+By substituting this expansion into the PDE \ref{eq:PDE}, we can match power of $\epsilon$
+and solve the system of PDEs.
+
+\begin{eqnarray*} 
+&O(\frac{1}{\epsilon}): &\mathcal{L}_y u_0=0  , u_0(T,x,y)=h(T,x)\\
+&O(\frac{1}{\sqrt\epsilon}): &\mathcal{L}_y u_1 +\rho \nu x \sigma_D(t,x)e^{y-\sigma_y^2}(u_0)_{xy}=0 , u_1(T,x,y)=0\\
+&O(1): &\mathcal{L}_y u_2 +\rho \nu x \sigma_D(t,x)e^{y-\sigma_y^2}(u_1)_{xy}+(\partial_t+\frac 1 2 x^2 \sigma^2_D(t,x)e^{2(y-\sigma_y^2)})u_0=0 , u_2(T,x,y)=0\\
+&O(\sqrt\epsilon): &\mathcal{L}_y u_3 +\rho \nu x \sigma_D(t,x)e^{y-\sigma_y^2}(u_2)_{xy}+(\partial_t+\frac 1 2 x^2 \sigma^2_D(t,x)e^{2(y-\sigma_y^2)})u_1=0 \\
+\end{eqnarray*} 
+
+\subsubsection{Order 1 term}
+By solving the PDE system we can get 
+\begin{eqnarray*} 
+    u_1&=&<e^{y-\sigma_y}\phi'(y)>(-\frac 1 2 \frac{\rho \nu}{\kappa})\int_0^T S_t \sigma_D(t,S_t)\partial_x(S_t^2 \sigma_D^2(t,S_t) \partial_{xx} u_0)dt\\
+    &=&<e^{y-\sigma_y}\phi'(y)>(-\frac 1 2 \frac{\rho \nu}{\kappa}) \partial^2_{\ln x, \sigma} u_0
+\end{eqnarray*} 
+
+\subsubsection{Order 0 and order 2 term}
+
+The non-calibrated LV process is \ref{eq:loc}
+
+With equation $E(f(Y))\approx f(E(Y))+\frac 1 2 Var(Y) f''(E(Y))$
+If we take  $E(f(Y))$ as the non calibrated LV price,then $f(E(Y))$ means the LV price with no deformation.
+\begin{equation}
+    u_0+u_1\approx\pi_{LV}+\frac 1 2 \sigma^2_y \frac{\partial_E^2 \pi^\beta_{LV}}{\partial \beta^2}|_{\beta=\sigma^2_y}
+\end{equation}
+
+\subsection{Modified Newton}
+In the above section we get the non-calibrated price:
+\begin{equation}
+    P^{NC}=\pi_{LV}+\frac 1 2 \sigma^2_y \frac{\partial^2 \pi^\beta_{LV}}{\partial \beta^2}|_{\beta=\sigma^2_y}+\frac{\rho \nu}{\kappa}\frac{\partial^2\pi_{LV}}{\partial \ln S_0\partial \sigma}
+\end{equation}
+We apply newton's method next to make sure our model fits the vanilla prices
+\begin{equation}
+    f(x^*)\approx f(x)-\frac{\partial_x f(x)}{\partial_x g(x)}g(x)
+\end{equation}
+$g(x)=C_{LV}-C_{market}$ is the constrain. 
+$\frac{\partial_x f(x)}{\partial_x g(x)}=q_{KT}$ is the change rate of exotic over vanilla as the local vol surface moves
+Since we want to match vanilla price for different K and T we got the integral form, numerically it equals to an average.
+\begin{equation}
+    P=P^{NC}-\int_0^T\int_0^{\infty}(C_{LV}^{K,T}+\frac 1 2 \sigma^2_y \frac{\partial^2 C^{\beta,K,T}_{LV}}{\partial \beta^2}|_{\beta=\sigma^2_y}+\frac{\rho \nu}{\kappa}\frac{\partial^2 C_{LV}^{K,T}}{\partial \ln S_0\partial \sigma}-C_{market}^{K,T})dKdT
+\end{equation}
+By using $C_{LV}^{K,T}=C_{market}^{K,T}$, we get the result
+\begin{equation}
+    P-P^{NC}=\frac 1 2 \sigma^2_y \frac{\partial_E^2 \pi^\beta_{LV}}{\partial \beta^2}|_{\beta=\sigma^2_y}
+    +\frac{\rho \nu}{\kappa}\frac{\partial_E^2 \pi_{LV}}{\partial \ln S_0\partial \sigma}
+\end{equation}
+Where the exotic Greeks are defined in \ref{eq:4} \ref{eq:5} 
 % \section{Our main result}
 
 % \begin{theorem}\label{thm:GreatTheorem}
