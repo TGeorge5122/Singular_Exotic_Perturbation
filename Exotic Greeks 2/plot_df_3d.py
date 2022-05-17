@@ -4,15 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def plot_df_3d(df,xlabel='x',ylabel='y',zlabel='z',title='surface_plot'):
+def plot_df_3d(df,xlabel='time',ylabel='log strike',zlabel='volatility',title='surface_plot'):
     '''
     Given a df, plot 3d surface of this df
     '''
     
     
     # Creating dataset
-    x = list(df.index)
-    y = list(df.columns)
+    y = list(df.index)
+    x = list(df.columns)
     X, Y = np.meshgrid(x, y)
     Z=df.values
     
