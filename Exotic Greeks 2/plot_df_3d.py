@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-def plot_df_3d(df,xlabel='time',ylabel='log strike',zlabel='volatility',title='surface_plot'):
+def plot_df_3d(df,xlabel='time',ylabel='strike',zlabel='volatility',title='surface_plot'):
     '''
     Given a df, plot 3d surface of this df
     '''

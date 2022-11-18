@@ -1,3 +1,4 @@
+from matplotlib.pyplot import plot
 from scipy import interpolate
 from scipy.stats import norm
 import collections
@@ -170,7 +171,7 @@ if __name__ == '__main__':
     paths = 5000
     timesteps = 1000
     
-    rho = -0.9
+    rho = -0.01
     nu = 0.1
     kappa = 10 
     
@@ -183,9 +184,17 @@ if __name__ == '__main__':
 
     k_array = np.linspace(-0.6, 0.2, 10)#log stock price log(St/S0)
     Strike_array=S0*np.exp(k_array)
-    t_array = np.linspace(0, 5, len(k_array))
+    t_array = np.linspace(0, 3, len(k_array))
     t_array[0] = 1/250
+
     
+    LVsurface=pd.DataFrame(index = Strike_array, columns = t_array,dtype=float)
+    for t in t_array:
+        for K in Strike_array:
+            LVsurface.loc[K,t]=float(locvolMLP(K,t))
+    
+    # print(LVsurface)
+    # plot_df_3d(LVsurface,title="local vol surface")
     volga_call_price_grid = pd.DataFrame(index = k_array, columns = t_array)
     sigma_kt_x_volga_kt_grid = pd.DataFrame(index = k_array, columns = t_array)
     x_volga_kt_grid = pd.DataFrame(index = k_array, columns = t_array)
@@ -198,7 +207,7 @@ if __name__ == '__main__':
     Barrier_LV=pd.DataFrame(index = Strike_array, columns = t_array)
     Barrier_LSV=pd.DataFrame(index = Strike_array, columns = t_array)
     for t in t_array:
-
+        print(t)
         c_kt_sigma = localVolMC(locvol = locvolMLP, S0 = S0, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array,kappa=kappa,nu=nu)
         c_kt_s_sigma_perturb = localVolMC(locvol = lambda u, t: locvolMLP(u,t) + delta_sigma, S0 = S0 + delta_S, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array,kappa=kappa,nu=nu)
         c_kt_sigmaperturb = localVolMC(locvol = lambda u, t: locvolMLP(u,t) - delta_sigma, S0 = S0, T = t,  paths = paths, timeSteps = timesteps, AK = Strike_array,kappa=kappa,nu=nu)
@@ -218,8 +227,10 @@ if __name__ == '__main__':
     #         x_vanna_kt_grid.at[k,t] = sigma_kt_x_vanna_kt_grid.at[k,t] - BS_imp_vol.at[k, t]
     x_volga_kt_grid= sigma_kt_x_volga_kt_grid- BS_imp_vol
     x_vanna_kt_grid= sigma_kt_x_vanna_kt_grid- BS_imp_vol
-
-       
+    # x_volga_kt_grid.iloc[:2,:2]=0
+    # x_vanna_kt_grid.iloc[:2,:2]=0
+    plot_df_3d(x_volga_kt_grid.iloc[2:,2:],title="volga x_kt",ylabel='log strike')
+    plot_df_3d(x_vanna_kt_grid.iloc[2:,2:],title="vanna x_kt",ylabel='log strike')
     #t_interp = []
     #for _ in range(len(k_array)):
     #    t_interp.extend(t_array)
@@ -253,12 +264,13 @@ if __name__ == '__main__':
 
 
     # plot_df_3d(Call_LV,title='Call LV')
-    plot_df_3d(Barrier_LV,title='Barrier LV')
-    plot_df_3d(Barrier_LSV,title='Barrier LSV')
+    plot_df_3d(Barrier_LV,title='Barrier LV',zlabel="option price")
+    plot_df_3d(Barrier_LSV,title='Barrier LSV',zlabel="option price")
     
-    lsv_impact = (1 / 2 * (nu ** 2 / (2 * kappa)) * exotic_volga + rho * nu / kappa * exotic_vanna)/100
-    plot_df_3d(lsv_impact,title='LSV impact')
-    plot_df_3d(Barrier_LSV-Barrier_LV,title='LSV model diff')
-    plot_df_3d(Barrier_LSV-Barrier_LV-lsv_impact,title='LSV model diff')
+    plot_df_3d(exotic_volga,title="Exotic Volga Barrier",zlabel="value")
+
+    lsv_impact = (1 / 2 * (nu ** 2 / (2 * kappa)) * exotic_volga + rho * nu / kappa * exotic_vanna)
+    plot_df_3d(lsv_impact,title='LSV impact',zlabel="price")
+    plot_df_3d(Barrier_LSV-Barrier_LV,title='LSV model diff',zlabel="price")
     1==1
 
