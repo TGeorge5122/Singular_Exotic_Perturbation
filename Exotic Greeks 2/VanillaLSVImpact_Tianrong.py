@@ -85,8 +85,8 @@ locvolCEV = lambda u, t: .2/np.sqrt(u)
 
 if __name__ == '__main__':
     
-    paths = 500
-    timesteps = 1000
+    paths = 10000
+    timesteps = 2000
     
     rho = 0
     nu = 0.1#10
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     delta_sigma = 0.03
     delta_S = 0.03
     beta = 0.03#deformation term
-    k_array = np.linspace(-0.6, 0.2, 10)#log stock price log(St/S0)
+    k_array = np.linspace(-0.1, 0.05, 20)#log stock price log(St/S0)
     Strike_array=S0*np.exp(k_array)# actual stock price St
     t_array = np.linspace(0, 1, len(k_array))
     t_array[0] = 1/250
@@ -115,10 +115,10 @@ if __name__ == '__main__':
     Call_LV=pd.DataFrame(index = k_array, columns = t_array)
 
     
-    LVsurface=pd.DataFrame(index = Strike_array, columns = t_array,dtype=float)
+    LVsurface=pd.DataFrame(index = k_array, columns = t_array,dtype=float)
     for t in t_array:
-        for K in Strike_array:
-            LVsurface.loc[K,t]=float(locvolMLP(K,t))
+        for k in k_array:
+            LVsurface.loc[k,t]=float(locvolMLP(S0*np.exp(k),t))
     plot_df_3d(LVsurface,title='LV surface')
 
     for t in t_array:
@@ -142,6 +142,7 @@ if __name__ == '__main__':
     #         # change locvol to BS impvol
     #         x_volga_kt_grid.at[k,t] = sigma_kt_x_volga_kt_grid.at[k,t] - BS_imp_vol.at[k, t]
     #         x_vanna_kt_grid.at[k,t] = sigma_kt_x_vanna_kt_grid.at[k,t] - BS_imp_vol.at[k, t]
+    orig_LocalVol=BSVol_to_LocVol(BS_imp_vol)
     volga_LocalVol=BSVol_to_LocVol(sigma_kt_x_volga_kt_grid)
     vanna_LocalVol=BSVol_to_LocVol(sigma_kt_x_vanna_kt_grid)
     

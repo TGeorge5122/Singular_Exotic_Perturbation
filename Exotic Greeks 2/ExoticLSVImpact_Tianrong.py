@@ -7,6 +7,8 @@ import pandas as pd
 import pdb
 from SVI_localvol import lvSPX
 from plot_df_3d import plot_df_3d
+from BSVol_to_LocVol import BSVol_to_LocVol
+
 def BSCall (S0, K, T, r, sigma):
     
     d1 = (np.log(S0 / K) + (r + sigma**2 / 2) * T) / (sigma * np.sqrt(T))
@@ -182,16 +184,16 @@ if __name__ == '__main__':
     delta_S = 0.03
     beta=0.03
 
-    k_array = np.linspace(-0.6, 0.2, 10)#log stock price log(St/S0)
+    k_array = np.linspace(-0.1, 0.05, 20)#log stock price log(St/S0)
     Strike_array=S0*np.exp(k_array)
-    t_array = np.linspace(0, 3, len(k_array))
+    t_array = np.linspace(0, 1, len(k_array))
     t_array[0] = 1/250
 
     
-    LVsurface=pd.DataFrame(index = Strike_array, columns = t_array,dtype=float)
+    LVsurface=pd.DataFrame(index = k_array, columns = t_array,dtype=float)
     for t in t_array:
-        for K in Strike_array:
-            LVsurface.loc[K,t]=float(locvolMLP(K,t))
+        for k in k_array:
+            LVsurface.loc[k,t]=float(locvolMLP(S0*np.exp(k),t))
     
     # print(LVsurface)
     # plot_df_3d(LVsurface,title="local vol surface")
@@ -225,8 +227,17 @@ if __name__ == '__main__':
     #         # change locvol to BS impvol
     #         x_volga_kt_grid.at[k,t] = sigma_kt_x_volga_kt_grid.at[k,t] - BS_imp_vol.at[k, t]
     #         x_vanna_kt_grid.at[k,t] = sigma_kt_x_vanna_kt_grid.at[k,t] - BS_imp_vol.at[k, t]
-    x_volga_kt_grid= sigma_kt_x_volga_kt_grid- BS_imp_vol
-    x_vanna_kt_grid= sigma_kt_x_vanna_kt_grid- BS_imp_vol
+    # x_volga_kt_grid= sigma_kt_x_volga_kt_grid- BS_imp_vol
+    # x_vanna_kt_grid= sigma_kt_x_vanna_kt_grid- BS_imp_vol
+
+    volga_LocalVol=BSVol_to_LocVol(sigma_kt_x_volga_kt_grid)
+    vanna_LocalVol=BSVol_to_LocVol(sigma_kt_x_vanna_kt_grid)
+    
+    volga_LocalVol_df=pd.DataFrame(index = k_array, columns = t_array).apply(lambda x:volga_LocalVol(x.index , x.name))
+    vanna_LocalVol_df=pd.DataFrame(index = k_array, columns = t_array).apply(lambda x:vanna_LocalVol(x.index , x.name))
+
+    x_volga_kt_grid= volga_LocalVol_df- LVsurface
+    x_vanna_kt_grid= vanna_LocalVol_df- LVsurface
     # x_volga_kt_grid.iloc[:2,:2]=0
     # x_vanna_kt_grid.iloc[:2,:2]=0
     plot_df_3d(x_volga_kt_grid.iloc[2:,2:],title="volga x_kt",ylabel='log strike')
