@@ -87,7 +87,7 @@
 
 \title{\bf Capstone report}
 
-\author{Tianrong Wang\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  Tianrong.Wang@baruch.cuny.edu}}{\setcounter{footnote}{1}} , Thomas George\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  Thomas.George@baruch.cuny.edu}}{\setcounter{footnote}{2}} \thanks{We wish to thank our hamsters Buster and Butch for their constant affection.}
+\author{Tianrong Wang\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  Tianrong.Wang@baruch.cuny.edu}}{\setcounter{footnote}{1}} , Thomas George\footnote{Department of Mathematics, Baruch College, CUNY. {\tt  Thomas.George@baruch.cuny.edu}}{\setcounter{footnote}{2}} \thanks{We wish to thank Professor Gatheral for his guidance and supervision . We also wish to thank Mr. Reghai for his constant support}
 }
 
 %\date{This version: December 25, 2011}
@@ -118,10 +118,23 @@ In this report, we describe our final project ....
 \section{Current Progress}
 \subsection{Options pricing models}
 \subsubsection{Local Vol surface}
-The Local Vol model I am using is the parameterized SVI model provided by professor Gatheral.
-$\sigma_{SVI}(k,t)$ where $k$ is the log strike and $t$ is the current time. I modified it to take $S_t$ and $t$ to be used in the Monte-Carlo local vol pricer.
-$\sigma_{SVI}(k=log(\frac{S_t}{S_0}),t)$
+The Local Vol model we are using is the parameterized SVI model provided by professor Gatheral.
+\[
+    \sigma^2(k,t)=a+b\{\rho (\frac{k}{\sqrt{t}}-m)+\sqrt{(\frac{k}{\sqrt{t}}-m)^2+\sigma^2 t}\}
+\]
+The parameters are:
+\begin{eqnarray*} 
+    a&=&0.0012\\
+    b&=&0.1634\\
+    \sigma&=&0.1029\\
+    \rho&=&-0.5555\\
+    m&=&0.0439
+\end{eqnarray*} 
 
+\begin{figure}[h]
+    \includegraphics[width=150mm]{local vol.png}
+    \label{fig:LVsurface}
+\end{figure}
 \subsubsection{Local Stochastic Vol model}
 The local stochatic volatility model we are using is
 \begin{equation} \label{eq:1}
@@ -179,6 +192,9 @@ We used a Black-Scholes solver to compute this new surface by using the followin
 \begin{equation} 
     \sigma_{BS,K,T}+x_{K,T}=C^{-1}(2 C_{LV}^{K,T,\sigma_y^2}-C_{LV}^{K,T,\sigma_y^2-beta})=0
 \end{equation} 
+\begin{figure}[h]
+    \includegraphics[width=150mm]{volga x_kt.png}
+\end{figure}
 $x_{K,T}$ is used as the bump for each $K,T$ on the local vol surface.
 This method used the approximation that the bump on the local vol surface is the same 
 as the resulted bump on the implied vol surface.\\
@@ -202,38 +218,31 @@ Then we solve $x_{K,T}$, which is a single point bump by using Black-Scholes sol
 \[
     \sigma_{BS,K,T}+x_{K,T}=C_{LV}^{K,T}(S+\delta S,\sigma_{K,T}+\delta \sigma)-C_{LV}^{K,T}(S+\delta S,\sigma_{K,T})+C_{LV}^{K,T}(S,\sigma_{K,T})
 \]
-
+\begin{figure}[h]
+    \includegraphics[width=150mm]{vanna x_kt.png}
+\end{figure}
 We again used the bump on the implied vol surface to apprximate the bump on the local vol surface.
 
 Exotic vanna is computed in the following way
-\begin{eqnarray} 
+\begin{eqnarray*} 
     &&\frac{\partial_E^2 \pi_{LV}}{\partial \ln S_0 \partial \sigma}\\
     &=&S_0\frac{\pi_{LV}(S_0+\delta S ,\sigma_{K,T}+\delta \sigma)-\pi_{LV}(S_0+\delta S ,\sigma_{K,T})-\pi_{LV}(S_0,\sigma_{K,T}+x_{K,T})+\pi_{LV}(S_0,\sigma_{K,T})}
     {\delta S \delta \sigma}
-\end{eqnarray} 
+\end{eqnarray*} 
 
-\subsubsection{Thoughts on current method}
-When finding the bump $x_{K,T}$ we used implied vol solver on each K and T.
-
-One problem with this method is that we got the bump with implied vol surface instead of
-the local vol surface. The other problem is that BS implied vol solver only capture the bump
-on a specific (K,T) each time.
-A better method should be constructing a new local vol surface $\sigma_{K,T}+x_{K,T}$ directly with all the option prices
-getting from equation \ref{eq:8} and \ref{eq:9}
 
 \subsection{Current result}
-With $S_0=1$ , log strikes $k=log(K/S_0) \in (-0.6,0.2)$ , time to maturity $T \in (0,1)$. The average exotic greeks are concluded in the table \ref{table:exotic greeks}
-\begin{table}[]
-    \begin{tabular}{lllll}
-    \cline{1-3}
-    \multicolumn{1}{|l|}{Average Absolute Exotic Greeks across K,T} & \multicolumn{1}{l|}{Exotic Volga} & \multicolumn{1}{l|}{Exotic Vanna} &  &  \\ \cline{1-3}
-    \multicolumn{1}{|l|}{Vanilla Call}                     & \multicolumn{1}{l|}{0.511}  & \multicolumn{1}{l|}{5.12}    &  &  \\ \cline{1-3}
-    \multicolumn{1}{|l|}{Down and Out Call}                & \multicolumn{1}{l|}{9.64}       & \multicolumn{1}{l|}{62.9}       &  &  \\ \cline{1-3}
-                                                           &                                   &                                   &  & 
-    \end{tabular}
-    \caption{exotic greeks}
-    \label{table:exotic greeks}
-\end{table}
+In the experiment we use down-and-out call options with barrier $B=0.9$, spot price $S_0=1$ , log strikes $k=log(K/S_0) \in (-0.6,0.2)$. LSV parameters $\rho=-0.9$, $nu=0.1$, $kappa=10$. The LSV impact we get is as figure \ref{fig:LSV impact}. The actual LSV-LV difference is as figure \ref{fig:LSV-LV}
+When getting Greeks, we used $\beta=0.03$, $\delta S=0.03$, $\delta \sigma=0.03$.
+\begin{figure}[h]
+    \includegraphics[width=150mm]{LSV impact.png}
+    \label{fig:LSV impact}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[width=150mm]{LSV minus LV.png}
+    \label{fig:LSV-LV}
+\end{figure}
 
 \section{Math proofs for the formulas}
 
@@ -353,21 +362,21 @@ Where the exotic Greeks are defined in \ref{eq:4} \ref{eq:5}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{thebibliography}{}
+% \begin{thebibliography}{}
 
 
-\bibitem{jimbook} { Gatheral, J.},
-{The Volatility Surface: A Practitioner's Guide},
-{Wiley Finance} (2006).
+% % \bibitem{jimbook} { Gatheral, J.},
+% % {The Volatility Surface: A Practitioner's Guide},
+% % {Wiley Finance} (2006).
 
-\bibitem{ghlow}
-{ Gatheral, J.}, { Hsu, E.P.}, { Laurence, P.}, { Ouyang, C.}, and { Wang, T.-H.},
-{Asymptotics of implied volatility in local volatility models},
-{\it Mathematical Finance} (2011) forthcoming.
+% % \bibitem{ghlow}
+% % { Gatheral, J.}, { Hsu, E.P.}, { Laurence, P.}, { Ouyang, C.}, and { Wang, T.-H.},
+% % {Asymptotics of implied volatility in local volatility models},
+% % {\it Mathematical Finance} (2011) forthcoming.
 
 
 
-\end{thebibliography}
+% \end{thebibliography}
 
 \end{document}
 
