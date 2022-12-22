@@ -32,19 +32,19 @@ def BSVol_to_LocVol( BSVol : pd.DataFrame) -> Callable[[float,float],float]:
             locVol.iloc[i,j]=(dwdt.iloc[i,j]/(1-(y_array[i]/w.iloc[i,j])*dwdy.iloc[i,j]+0.5*dwdy2.iloc[i,j]\
                 +0.25*(y_array[i]**2/w.iloc[i,j]**2-1/w.iloc[i,j]-0.25)*dwdy.iloc[i,j]**2))
     # Dupire formula for total variance
-    plot_df_3d(BSVol,title='BS vol')
+    # plot_df_3d(BSVol,title='BS vol')
     
     # locVariance=dwdt/(1-(y_array/TotalVar)*dwdy+0.5*dwdy2+0.25*(y_array**2/TotalVar**2-1/TotalVar-0.25)*dwdy**2)
     locVar=locVol*(locVol>0)
     locVol=np.sqrt(locVar)
     params=SVIFit(locVol)
-    plot_df_3d(locVol,title='local vol before fitting')
+    # plot_df_3d(locVol,title='local vol before fitting')
 
     LVsurface_fitted=pd.DataFrame(index = y_array, columns = t_array,dtype=float)
     for t in t_array:
         for k in y_array:
             LVsurface_fitted.loc[k,t]=float(SVI_params(*params)(k,t))
-    plot_df_3d(LVsurface_fitted,title='LV surface after fitting')
+    # plot_df_3d(LVsurface_fitted,title='LV surface after fitting')
 
     #interpolate and extrapolate
     # locVol_fun = interpolate.RectBivariateSpline(y_array, t_array, locVol.astype(float).values)
